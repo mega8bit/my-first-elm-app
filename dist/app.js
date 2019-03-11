@@ -4893,6 +4893,8 @@ var author$project$Main$LinkClicked = function (a) {
 var author$project$Main$UrlChange = function (a) {
 	return {$: 'UrlChange', a: a};
 };
+var elm$core$Basics$False = {$: 'False'};
+var author$project$Pages$NotFound$init = false;
 var author$project$Router$NotFound = {$: 'NotFound'};
 var author$project$Router$getRoute = function (isroute) {
 	if (isroute.$ === 'Just') {
@@ -5193,7 +5195,6 @@ var elm$core$Basics$apR = F2(
 	function (x, f) {
 		return f(x);
 	});
-var elm$core$Basics$False = {$: 'False'};
 var elm$core$Basics$True = {$: 'True'};
 var elm$core$Result$isOk = function (result) {
 	if (result.$ === 'Ok') {
@@ -6191,9 +6192,18 @@ var author$project$Main$init = F3(
 	function (flags, url, key) {
 		var route = author$project$Router$getRoute(
 			A2(elm$url$Url$Parser$parse, author$project$Router$route, url));
+		var notFoundModel = author$project$Pages$NotFound$init;
 		return _Utils_Tuple2(
-			{currentRoute: route, urlKey: key},
+			{currentRoute: route, notFoundModel: notFoundModel, urlKey: key},
 			elm$core$Platform$Cmd$none);
+	});
+var author$project$Pages$NotFound$update = F2(
+	function (msg, model) {
+		if (msg.$ === 'Show') {
+			return true;
+		} else {
+			return false;
+		}
 	});
 var elm$browser$Browser$External = function (a) {
 	return {$: 'External', a: a};
@@ -9919,33 +9929,133 @@ var elm$url$Url$toString = function (url) {
 };
 var author$project$Main$update = F2(
 	function (msg, model) {
-		if (msg.$ === 'LinkClicked') {
-			var request = msg.a;
-			if (request.$ === 'Internal') {
-				var url = request.a;
+		switch (msg.$) {
+			case 'LinkClicked':
+				var request = msg.a;
+				if (request.$ === 'Internal') {
+					var url = request.a;
+					return _Utils_Tuple2(
+						model,
+						A2(
+							elm$browser$Browser$Navigation$pushUrl,
+							model.urlKey,
+							elm$url$Url$toString(url)));
+				} else {
+					var href = request.a;
+					return _Utils_Tuple2(
+						model,
+						elm$browser$Browser$Navigation$load(href));
+				}
+			case 'UrlChange':
+				var url = msg.a;
+				var route = author$project$Router$getRoute(
+					A2(elm$url$Url$Parser$parse, author$project$Router$route, url));
 				return _Utils_Tuple2(
-					model,
-					A2(
-						elm$browser$Browser$Navigation$pushUrl,
-						model.urlKey,
-						elm$url$Url$toString(url)));
-			} else {
-				var href = request.a;
+					_Utils_update(
+						model,
+						{currentRoute: route}),
+					elm$core$Platform$Cmd$none);
+			default:
+				var subMsg = msg.a;
+				var updatedModel = A2(author$project$Pages$NotFound$update, subMsg, model.notFoundModel);
 				return _Utils_Tuple2(
-					model,
-					elm$browser$Browser$Navigation$load(href));
-			}
-		} else {
-			var url = msg.a;
-			var route = author$project$Router$getRoute(
-				A2(elm$url$Url$Parser$parse, author$project$Router$route, url));
-			return _Utils_Tuple2(
-				_Utils_update(
-					model,
-					{currentRoute: route}),
-				elm$core$Platform$Cmd$none);
+					_Utils_update(
+						model,
+						{notFoundModel: updatedModel}),
+					elm$core$Platform$Cmd$none);
 		}
 	});
+var author$project$Main$NotFoundMsg = function (a) {
+	return {$: 'NotFoundMsg', a: a};
+};
+var author$project$Pages$NotFound$Hide = {$: 'Hide'};
+var author$project$Pages$NotFound$Show = {$: 'Show'};
+var author$project$Pages$NotFound$viewMoreInformation = function (model) {
+	return model ? A2(
+		elm$html$Html$div,
+		_List_Nil,
+		_List_fromArray(
+			[
+				A2(
+				elm$html$Html$p,
+				_List_Nil,
+				_List_fromArray(
+					[
+						elm$html$Html$text('The HTTP 404, 404 Not Found and 404 error message is a Hypertext Transfer Protocol standard response code, in computer network communications, to indicate that the client was able to communicate with a given server, but the server could not find what was requested.')
+					])),
+				A2(
+				elm$html$Html$button,
+				_List_fromArray(
+					[
+						elm$html$Html$Events$onClick(author$project$Pages$NotFound$Hide)
+					]),
+				_List_fromArray(
+					[
+						elm$html$Html$text('hide information')
+					]))
+			])) : A2(
+		elm$html$Html$div,
+		_List_Nil,
+		_List_fromArray(
+			[
+				A2(
+				elm$html$Html$p,
+				_List_Nil,
+				_List_fromArray(
+					[
+						elm$html$Html$text('')
+					])),
+				A2(
+				elm$html$Html$button,
+				_List_fromArray(
+					[
+						elm$html$Html$Events$onClick(author$project$Pages$NotFound$Show)
+					]),
+				_List_fromArray(
+					[
+						elm$html$Html$text('Show more information')
+					]))
+			]));
+};
+var author$project$Pages$NotFound$view = function (model) {
+	return A2(
+		elm$html$Html$div,
+		_List_Nil,
+		_List_fromArray(
+			[
+				A2(
+				elm$html$Html$p,
+				_List_Nil,
+				_List_fromArray(
+					[
+						elm$html$Html$text('404 page. Not found')
+					])),
+				author$project$Pages$NotFound$viewMoreInformation(model)
+			]));
+};
+var author$project$Main$render = function (model) {
+	var _n0 = model.currentRoute;
+	if (_n0.$ === 'Preview') {
+		return A2(
+			elm$html$Html$p,
+			_List_Nil,
+			_List_fromArray(
+				[
+					elm$html$Html$text('preview page')
+				]));
+	} else {
+		return A2(
+			elm$html$Html$div,
+			_List_Nil,
+			_List_fromArray(
+				[
+					A2(
+					elm$html$Html$map,
+					author$project$Main$NotFoundMsg,
+					author$project$Pages$NotFound$view(model.notFoundModel))
+				]));
+	}
+};
 var author$project$Main$view = function (model) {
 	return {
 		body: _List_fromArray(
@@ -9955,26 +10065,7 @@ var author$project$Main$view = function (model) {
 				_List_Nil,
 				_List_fromArray(
 					[
-						function () {
-						var _n0 = model.currentRoute;
-						if (_n0.$ === 'Preview') {
-							return A2(
-								elm$html$Html$p,
-								_List_Nil,
-								_List_fromArray(
-									[
-										elm$html$Html$text('preview')
-									]));
-						} else {
-							return A2(
-								elm$html$Html$p,
-								_List_Nil,
-								_List_fromArray(
-									[
-										elm$html$Html$text('404')
-									]));
-						}
-					}()
+						author$project$Main$render(model)
 					]))
 			]),
 		title: 'elm app'
@@ -9995,4 +10086,4 @@ var author$project$Main$main = elm$browser$Browser$application(
 		view: author$project$Main$view
 	});
 _Platform_export({'Main':{'init':author$project$Main$main(
-	elm$json$Json$Decode$succeed(_Utils_Tuple0))({"versions":{"elm":"0.19.0"},"types":{"message":"Main.Msg","aliases":{"Url.Url":{"args":[],"type":"{ protocol : Url.Protocol, host : String.String, port_ : Maybe.Maybe Basics.Int, path : String.String, query : Maybe.Maybe String.String, fragment : Maybe.Maybe String.String }"}},"unions":{"Main.Msg":{"args":[],"tags":{"UrlChange":["Url.Url"],"LinkClicked":["Browser.UrlRequest"]}},"Browser.UrlRequest":{"args":[],"tags":{"Internal":["Url.Url"],"External":["String.String"]}},"Basics.Int":{"args":[],"tags":{"Int":[]}},"Maybe.Maybe":{"args":["a"],"tags":{"Just":["a"],"Nothing":[]}},"String.String":{"args":[],"tags":{"String":[]}},"Url.Protocol":{"args":[],"tags":{"Http":[],"Https":[]}}}}})}});}(this));
+	elm$json$Json$Decode$succeed(_Utils_Tuple0))({"versions":{"elm":"0.19.0"},"types":{"message":"Main.Msg","aliases":{"Url.Url":{"args":[],"type":"{ protocol : Url.Protocol, host : String.String, port_ : Maybe.Maybe Basics.Int, path : String.String, query : Maybe.Maybe String.String, fragment : Maybe.Maybe String.String }"}},"unions":{"Main.Msg":{"args":[],"tags":{"UrlChange":["Url.Url"],"LinkClicked":["Browser.UrlRequest"],"NotFoundMsg":["Pages.NotFound.Msg"]}},"Pages.NotFound.Msg":{"args":[],"tags":{"Show":[],"Hide":[]}},"Browser.UrlRequest":{"args":[],"tags":{"Internal":["Url.Url"],"External":["String.String"]}},"Basics.Int":{"args":[],"tags":{"Int":[]}},"Maybe.Maybe":{"args":["a"],"tags":{"Just":["a"],"Nothing":[]}},"String.String":{"args":[],"tags":{"String":[]}},"Url.Protocol":{"args":[],"tags":{"Http":[],"Https":[]}}}}})}});}(this));
