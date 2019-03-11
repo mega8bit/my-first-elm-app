@@ -1,0 +1,27 @@
+@import url('bootstrap.min.css');
+
+/*
+#1a3263 - blue, #fab95b - gold, #5589AB - cyan
+*/
+.header-panel {
+    width: 100%;
+    height: 25px;
+    margin: 0;
+    padding: 0;
+    background-color: #1a3263;
+}
+
+.orange-font-s {
+    color: #fab95b;
+    font-size: 12px;
+}
+
+.orange-font-m {
+    color: #fab95b;
+    font-size: 14px;
+}
+
+.orange-font-b {
+    color: #fab95b;
+    font-size: 20px;
+}
