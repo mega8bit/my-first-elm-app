@@ -2,35 +2,37 @@ module Main exposing (..)
 
 import Browser
 import Browser.Navigation as Nav
-import Html exposing (Html, div, p, text)
-import Url
-import Widget
-
+import Html exposing (div, p, text)
+import Router
+import Url exposing (Url)
+import Url.Parser
 main =
-    Browser.application {
+    Browser.application
+    {
         init = init
         , update = update
         , view = view
-        , onUrlRequest = LinkClicked
+        , subscriptions = \_->Sub.none
         , onUrlChange = UrlChange
-        , subscriptions = \_ -> Sub.none
+        , onUrlRequest = LinkClicked
     }
 
+
 type alias Model =
-    {
-        key: Nav.Key,
-        widgetModel: Widget.Model
+    { urlKey: Nav.Key
+    , currentRoute: Router.Route
     }
 
 init: () -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
 init flags url key =
-    ({key = key, widgetModel = Widget.init}, Cmd.none)
+    let
+        route = Url.Parser.parse Router.route url |> Router.getRoute
+    in
+    ({ urlKey = key, currentRoute = route}, Cmd.none)
 
 type Msg =
-    NoopMsg
+    UrlChange Url.Url
     | LinkClicked Browser.UrlRequest
-    | UrlChange Url.Url
-    | WidgetMsg Widget.Msg
 
 update: Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -38,26 +40,26 @@ update msg model =
         LinkClicked request ->
             case request of
                 Browser.Internal url ->
-                    (model, Nav.pushUrl model.key (Url.toString url) )
+                    (model, Nav.pushUrl model.urlKey (Url.toString url))
                 Browser.External href ->
                     (model, Nav.load href)
         UrlChange url ->
-                (model, Cmd.none)
-        NoopMsg ->
-            (model, Cmd.none)
-        WidgetMsg subMsg ->
             let
-                (updateModel, widgetCmd) = Widget.update subMsg model.widgetModel
+                route = Url.Parser.parse Router.route url |> Router.getRoute
             in
-                ({model | widgetModel = updateModel}, Cmd.map WidgetMsg widgetCmd)
+            ({model | currentRoute = route}, Cmd.none)
 
 view: Model -> Browser.Document Msg
 view model =
     {
-        title = "elmapp"
+        title = "elm app"
         , body =
-            [ div[] [
-                p [] [text "start app"]
-                , Html.map WidgetMsg (Widget.view model.widgetModel)
-            ] ]
+            [ div [] [
+                    case model.currentRoute of
+                        Router.Preview ->
+                            p [] [text "preview"]
+                        Router.NotFound ->
+                            p [] [text "404"]
+                ]
+            ]
     }
