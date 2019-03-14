@@ -3,7 +3,9 @@ module Main exposing (..)
 import Browser
 import Browser.Navigation as Nav
 import Html exposing (Html, div, p, text)
+import Pages.Gif
 import Pages.NotFound
+import Pages.Preview
 import Router
 import Url exposing (Url)
 import Url.Parser
@@ -23,24 +25,47 @@ type alias Model =
     { urlKey: Nav.Key
     , currentRoute: Router.Route
     , notFoundModel: Pages.NotFound.Model
+    , previewModel: Pages.Preview.Model
+    , gifModel: Pages.Gif.Model
     }
 
 init: () -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
 init flags url key =
     let
         route = Url.Parser.parse Router.route url |> Router.getRoute
-        notFoundModel = Pages.NotFound.init
+        initModel =
+            {
+               urlKey = key
+             , currentRoute = route
+             , notFoundModel = False
+             , previewModel = Pages.Preview.Noop
+             , gifModel = Pages.Gif.Noop
+            }
     in
-    ({
-       urlKey = key
-     , currentRoute = route
-     , notFoundModel = notFoundModel
-     }, Cmd.none)
+        initialModels initModel route
 
+
+initialModels: Model -> Router.Route -> (Model, Cmd Msg)
+initialModels model route =
+    case route of
+        Router.NotFound ->
+            ({model | notFoundModel = Pages.NotFound.init, currentRoute = route}, Cmd.none)
+        Router.Preview ->
+            let
+                (newModel, cmd) = Pages.Preview.init
+            in
+            ({model | previewModel = newModel, currentRoute = route}, Cmd.map PreviewMsg cmd)
+        Router.Gif ->
+            let
+                (newModel, cmd) = Pages.Gif.init
+            in
+            ({model | gifModel = newModel, currentRoute = route}, Cmd.map GifMsg cmd)
 type Msg =
     UrlChange Url.Url
     | LinkClicked Browser.UrlRequest
     | NotFoundMsg Pages.NotFound.Msg
+    | PreviewMsg Pages.Preview.Msg
+    | GifMsg Pages.Gif.Msg
 
 update: Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -55,12 +80,22 @@ update msg model =
             let
                 route = Url.Parser.parse Router.route url |> Router.getRoute
             in
-            ({model | currentRoute = route}, Cmd.none)
+                initialModels model route
         NotFoundMsg subMsg ->
             let
                 updatedModel = Pages.NotFound.update subMsg model.notFoundModel
             in
             ({model | notFoundModel = updatedModel}, Cmd.none)
+        PreviewMsg subMsg ->
+            let
+                updateModel = Pages.Preview.update subMsg
+            in
+                ({model | previewModel = updateModel}, Cmd.none)
+        GifMsg subMsg ->
+            let
+                (updateModel, updateMsg) = Pages.Gif.update subMsg
+            in
+                ({model | gifModel = updateModel}, Cmd.map GifMsg updateMsg)
 
 view: Model -> Browser.Document Msg
 view model =
@@ -77,9 +112,17 @@ render: Model -> Html Msg
 render model =
     case model.currentRoute of
         Router.Preview ->
-            p [] [text "preview page"]
+            div []
+            [
+                Html.map PreviewMsg (Pages.Preview.view model.previewModel)
+            ]
         Router.NotFound ->
             div []
             [
                 Html.map NotFoundMsg (Pages.NotFound.view model.notFoundModel)
+            ]
+        Router.Gif ->
+            div []
+            [
+                Html.map GifMsg (Pages.Gif.view model.gifModel)
             ]
