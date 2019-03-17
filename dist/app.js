@@ -5074,6 +5074,9 @@ var author$project$Main$GifMsg = function (a) {
 var author$project$Main$PreviewMsg = function (a) {
 	return {$: 'PreviewMsg', a: a};
 };
+var author$project$Main$TreeMsg = function (a) {
+	return {$: 'TreeMsg', a: a};
+};
 var author$project$Pages$Gif$GotGif = function (a) {
 	return {$: 'GotGif', a: a};
 };
@@ -6463,7 +6466,63 @@ var author$project$Pages$Preview$init = _Utils_Tuple2(
 	elm$http$Http$get(
 		{
 			expect: elm$http$Http$expectString(author$project$Pages$Preview$GotText),
-			url: 'https://ident.me'
+			url: 'http://localhost:8080/i.php'
+		}));
+var author$project$Pages$Tree$GotTree = function (a) {
+	return {$: 'GotTree', a: a};
+};
+var author$project$Pages$Tree$Childrens = function (a) {
+	return {$: 'Childrens', a: a};
+};
+var author$project$Pages$Tree$Tree = F5(
+	function (id, name, parentId, text, children) {
+		return {children: children, id: id, name: name, parentId: parentId, text: text};
+	});
+var elm$json$Json$Decode$int = _Json_decodeInt;
+var elm$json$Json$Decode$andThen = _Json_andThen;
+var elm$json$Json$Decode$succeed = _Json_succeed;
+var elm$json$Json$Decode$lazy = function (thunk) {
+	return A2(
+		elm$json$Json$Decode$andThen,
+		thunk,
+		elm$json$Json$Decode$succeed(_Utils_Tuple0));
+};
+var elm$json$Json$Decode$list = _Json_decodeList;
+var elm$json$Json$Decode$map = _Json_map1;
+var elm$json$Json$Decode$map5 = _Json_map5;
+function author$project$Pages$Tree$cyclic$treeDataDecoder() {
+	return elm$json$Json$Decode$list(
+		A6(
+			elm$json$Json$Decode$map5,
+			author$project$Pages$Tree$Tree,
+			A2(elm$json$Json$Decode$field, 'id', elm$json$Json$Decode$int),
+			A2(elm$json$Json$Decode$field, 'name', elm$json$Json$Decode$string),
+			A2(elm$json$Json$Decode$field, 'parent_id', elm$json$Json$Decode$int),
+			A2(elm$json$Json$Decode$field, 'text', elm$json$Json$Decode$string),
+			A2(
+				elm$json$Json$Decode$field,
+				'children',
+				A2(
+					elm$json$Json$Decode$map,
+					author$project$Pages$Tree$Childrens,
+					elm$json$Json$Decode$lazy(
+						function (_n0) {
+							return author$project$Pages$Tree$cyclic$treeDataDecoder();
+						})))));
+}
+try {
+	var author$project$Pages$Tree$treeDataDecoder = author$project$Pages$Tree$cyclic$treeDataDecoder();
+	author$project$Pages$Tree$cyclic$treeDataDecoder = function () {
+		return author$project$Pages$Tree$treeDataDecoder;
+	};
+} catch ($) {
+throw 'Some top-level definitions from `Pages.Tree` are causing infinite recursion:\n\n  ┌─────┐\n  │    treeDataDecoder\n  └─────┘\n\nThese errors are very tricky, so read https://elm-lang.org/0.19.0/halting-problem to learn how to fix it!';}
+var author$project$Pages$Tree$init = _Utils_Tuple2(
+	_List_Nil,
+	elm$http$Http$get(
+		{
+			expect: A2(elm$http$Http$expectJson, author$project$Pages$Tree$GotTree, author$project$Pages$Tree$treeDataDecoder),
+			url: 'http://localhost:8080/t.json'
 		}));
 var elm$core$Platform$Cmd$map = _Platform_map;
 var elm$core$Platform$Cmd$batch = _Platform_batch;
@@ -6486,7 +6545,7 @@ var author$project$Main$initialModels = F2(
 						model,
 						{currentRoute: route, previewModel: newModel}),
 					A2(elm$core$Platform$Cmd$map, author$project$Main$PreviewMsg, cmd));
-			default:
+			case 'Gif':
 				var _n2 = author$project$Pages$Gif$init;
 				var newModel = _n2.a;
 				var cmd = _n2.b;
@@ -6495,6 +6554,15 @@ var author$project$Main$initialModels = F2(
 						model,
 						{currentRoute: route, gifModel: newModel}),
 					A2(elm$core$Platform$Cmd$map, author$project$Main$GifMsg, cmd));
+			default:
+				var _n3 = author$project$Pages$Tree$init;
+				var newModel = _n3.a;
+				var cmd = _n3.b;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{currentRoute: route, treeModel: newModel}),
+					A2(elm$core$Platform$Cmd$map, author$project$Main$TreeMsg, cmd));
 		}
 	});
 var author$project$Pages$Gif$Noop = {$: 'Noop'};
@@ -6510,6 +6578,7 @@ var author$project$Router$getRoute = function (isroute) {
 };
 var author$project$Router$Gif = {$: 'Gif'};
 var author$project$Router$Preview = {$: 'Preview'};
+var author$project$Router$Tree = {$: 'Tree'};
 var elm$core$List$map = F2(
 	function (f, xs) {
 		return A3(
@@ -6637,7 +6706,11 @@ var author$project$Router$route = elm$url$Url$Parser$oneOf(
 			A2(
 			elm$url$Url$Parser$map,
 			author$project$Router$Gif,
-			elm$url$Url$Parser$s('gif'))
+			elm$url$Url$Parser$s('gif')),
+			A2(
+			elm$url$Url$Parser$map,
+			author$project$Router$Tree,
+			elm$url$Url$Parser$s('tree'))
 		]));
 var elm$url$Url$Parser$getFirstMatch = function (states) {
 	getFirstMatch:
@@ -6758,7 +6831,7 @@ var author$project$Main$init = F3(
 	function (flags, url, key) {
 		var route = author$project$Router$getRoute(
 			A2(elm$url$Url$Parser$parse, author$project$Router$route, url));
-		var initModel = {currentRoute: route, gifModel: author$project$Pages$Gif$Noop, notFoundModel: false, previewModel: author$project$Pages$Preview$Noop, urlKey: key};
+		var initModel = {currentRoute: route, gifModel: author$project$Pages$Gif$Noop, notFoundModel: false, previewModel: author$project$Pages$Preview$Noop, treeModel: _List_Nil, urlKey: key};
 		return A2(author$project$Main$initialModels, initModel, route);
 	});
 var author$project$Pages$Gif$Failed = {$: 'Failed'};
@@ -6799,6 +6872,21 @@ var author$project$Pages$Preview$update = function (msg) {
 		return author$project$Pages$Preview$Success(text);
 	} else {
 		return author$project$Pages$Preview$Fail;
+	}
+};
+var elm$core$Debug$log = _Debug_log;
+var elm$core$Debug$toString = _Debug_toString;
+var author$project$Pages$Tree$update = function (msg) {
+	var result = msg.a;
+	if (result.$ === 'Ok') {
+		var text = result.a;
+		return _Utils_Tuple2(text, elm$core$Platform$Cmd$none);
+	} else {
+		var text = result.a;
+		return A2(
+			elm$core$Debug$log,
+			elm$core$Debug$toString(text),
+			_Utils_Tuple2(_List_Nil, elm$core$Platform$Cmd$none));
 	}
 };
 var elm$browser$Browser$External = function (a) {
@@ -6873,7 +6961,6 @@ var elm$core$Task$perform = F2(
 			elm$core$Task$Perform(
 				A2(elm$core$Task$map, toMessage, task)));
 	});
-var elm$json$Json$Decode$map = _Json_map1;
 var elm$browser$Debugger$Expando$ArraySeq = {$: 'ArraySeq'};
 var elm$browser$Debugger$Expando$Constructor = F3(
 	function (a, b, c) {
@@ -6932,7 +7019,6 @@ var elm$browser$Debugger$Overlay$Choose = F2(
 var elm$browser$Debugger$Overlay$goodNews1 = '\nThe good news is that having values like this in your message type is not\nso great in the long run. You are better off using simpler data, like\n';
 var elm$browser$Debugger$Overlay$goodNews2 = '\nfunction can pattern match on that data and call whatever functions, JSON\ndecoders, etc. you need. This makes the code much more explicit and easy to\nfollow for other readers (or you in a few months!)\n';
 var elm$json$Json$Decode$map2 = _Json_map2;
-var elm$json$Json$Decode$succeed = _Json_succeed;
 var elm$virtual_dom$VirtualDom$toHandlerInt = function (handler) {
 	switch (handler.$) {
 		case 'Normal':
@@ -8776,7 +8862,6 @@ var elm$browser$Debugger$Metadata$Alias = F2(
 	function (args, tipe) {
 		return {args: args, tipe: tipe};
 	});
-var elm$json$Json$Decode$list = _Json_decodeList;
 var elm$browser$Debugger$Metadata$decodeAlias = A3(
 	elm$json$Json$Decode$map2,
 	elm$browser$Debugger$Metadata$Alias,
@@ -10516,7 +10601,7 @@ var author$project$Main$update = F2(
 						model,
 						{previewModel: updateModel}),
 					elm$core$Platform$Cmd$none);
-			default:
+			case 'GifMsg':
 				var subMsg = msg.a;
 				var _n2 = author$project$Pages$Gif$update(subMsg);
 				var updateModel = _n2.a;
@@ -10526,6 +10611,16 @@ var author$project$Main$update = F2(
 						model,
 						{gifModel: updateModel}),
 					A2(elm$core$Platform$Cmd$map, author$project$Main$GifMsg, updateMsg));
+			default:
+				var subMsg = msg.a;
+				var _n3 = author$project$Pages$Tree$update(subMsg);
+				var updateModel = _n3.a;
+				var updateMsg = _n3.b;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{treeModel: updateModel}),
+					A2(elm$core$Platform$Cmd$map, author$project$Main$TreeMsg, updateMsg));
 		}
 	});
 var author$project$Main$NotFoundMsg = function (a) {
@@ -10734,6 +10829,41 @@ var author$project$Pages$Preview$view = function (model) {
 			}()
 			]));
 };
+var author$project$Pages$Tree$getTreeChildren = function (child) {
+	var a = child.a;
+	return a;
+};
+var author$project$Pages$Tree$viewTreeChildrens = function (children) {
+	return A2(
+		elm$html$Html$ul,
+		_List_Nil,
+		_List_fromArray(
+			[
+				author$project$Pages$Tree$viewTreeElement(children)
+			]));
+};
+var author$project$Pages$Tree$viewTreeElement = function (tree) {
+	return A2(
+		elm$html$Html$li,
+		_List_Nil,
+		_List_fromArray(
+			[
+				elm$html$Html$text(tree.name),
+				A2(
+				elm$html$Html$ul,
+				_List_Nil,
+				A2(
+					elm$core$List$map,
+					author$project$Pages$Tree$viewTreeChildrens,
+					author$project$Pages$Tree$getTreeChildren(tree.children)))
+			]));
+};
+var author$project$Pages$Tree$view = function (tree) {
+	return A2(
+		elm$html$Html$ul,
+		_List_Nil,
+		A2(elm$core$List$map, author$project$Pages$Tree$viewTreeElement, tree));
+};
 var author$project$Main$render = function (model) {
 	var _n0 = model.currentRoute;
 	switch (_n0.$) {
@@ -10759,7 +10889,7 @@ var author$project$Main$render = function (model) {
 						author$project$Main$NotFoundMsg,
 						author$project$Pages$NotFound$view(model.notFoundModel))
 					]));
-		default:
+		case 'Gif':
 			return A2(
 				elm$html$Html$div,
 				_List_Nil,
@@ -10769,6 +10899,17 @@ var author$project$Main$render = function (model) {
 						elm$html$Html$map,
 						author$project$Main$GifMsg,
 						author$project$Pages$Gif$view(model.gifModel))
+					]));
+		default:
+			return A2(
+				elm$html$Html$div,
+				_List_Nil,
+				_List_fromArray(
+					[
+						A2(
+						elm$html$Html$map,
+						author$project$Main$TreeMsg,
+						author$project$Pages$Tree$view(model.treeModel))
 					]));
 	}
 };
@@ -10802,4 +10943,4 @@ var author$project$Main$main = elm$browser$Browser$application(
 		view: author$project$Main$view
 	});
 _Platform_export({'Main':{'init':author$project$Main$main(
-	elm$json$Json$Decode$succeed(_Utils_Tuple0))({"versions":{"elm":"0.19.0"},"types":{"message":"Main.Msg","aliases":{"Url.Url":{"args":[],"type":"{ protocol : Url.Protocol, host : String.String, port_ : Maybe.Maybe Basics.Int, path : String.String, query : Maybe.Maybe String.String, fragment : Maybe.Maybe String.String }"}},"unions":{"Main.Msg":{"args":[],"tags":{"UrlChange":["Url.Url"],"LinkClicked":["Browser.UrlRequest"],"NotFoundMsg":["Pages.NotFound.Msg"],"PreviewMsg":["Pages.Preview.Msg"],"GifMsg":["Pages.Gif.Msg"]}},"Pages.Gif.Msg":{"args":[],"tags":{"GotGif":["Result.Result Http.Error String.String"],"More":[]}},"Pages.NotFound.Msg":{"args":[],"tags":{"Show":[],"Hide":[]}},"Pages.Preview.Msg":{"args":[],"tags":{"GotText":["Result.Result Http.Error String.String"]}},"Browser.UrlRequest":{"args":[],"tags":{"Internal":["Url.Url"],"External":["String.String"]}},"Basics.Int":{"args":[],"tags":{"Int":[]}},"Maybe.Maybe":{"args":["a"],"tags":{"Just":["a"],"Nothing":[]}},"String.String":{"args":[],"tags":{"String":[]}},"Url.Protocol":{"args":[],"tags":{"Http":[],"Https":[]}},"Result.Result":{"args":["error","value"],"tags":{"Ok":["value"],"Err":["error"]}},"Http.Error":{"args":[],"tags":{"BadUrl":["String.String"],"Timeout":[],"NetworkError":[],"BadStatus":["Basics.Int"],"BadBody":["String.String"]}}}}})}});}(this));
+	elm$json$Json$Decode$succeed(_Utils_Tuple0))({"versions":{"elm":"0.19.0"},"types":{"message":"Main.Msg","aliases":{"Url.Url":{"args":[],"type":"{ protocol : Url.Protocol, host : String.String, port_ : Maybe.Maybe Basics.Int, path : String.String, query : Maybe.Maybe String.String, fragment : Maybe.Maybe String.String }"},"Pages.Tree.Tree":{"args":[],"type":"{ id : Basics.Int, name : String.String, parentId : Basics.Int, text : String.String, children : Pages.Tree.Childrens }"}},"unions":{"Main.Msg":{"args":[],"tags":{"UrlChange":["Url.Url"],"LinkClicked":["Browser.UrlRequest"],"NotFoundMsg":["Pages.NotFound.Msg"],"PreviewMsg":["Pages.Preview.Msg"],"GifMsg":["Pages.Gif.Msg"],"TreeMsg":["Pages.Tree.Msg"]}},"Pages.Gif.Msg":{"args":[],"tags":{"GotGif":["Result.Result Http.Error String.String"],"More":[]}},"Pages.NotFound.Msg":{"args":[],"tags":{"Show":[],"Hide":[]}},"Pages.Preview.Msg":{"args":[],"tags":{"GotText":["Result.Result Http.Error String.String"]}},"Pages.Tree.Msg":{"args":[],"tags":{"GotTree":["Result.Result Http.Error (List.List Pages.Tree.Tree)"]}},"Browser.UrlRequest":{"args":[],"tags":{"Internal":["Url.Url"],"External":["String.String"]}},"Basics.Int":{"args":[],"tags":{"Int":[]}},"Maybe.Maybe":{"args":["a"],"tags":{"Just":["a"],"Nothing":[]}},"String.String":{"args":[],"tags":{"String":[]}},"Url.Protocol":{"args":[],"tags":{"Http":[],"Https":[]}},"Pages.Tree.Childrens":{"args":[],"tags":{"Childrens":["List.List Pages.Tree.Tree"]}},"List.List":{"args":["a"],"tags":{}},"Result.Result":{"args":["error","value"],"tags":{"Ok":["value"],"Err":["error"]}},"Http.Error":{"args":[],"tags":{"BadUrl":["String.String"],"Timeout":[],"NetworkError":[],"BadStatus":["Basics.Int"],"BadBody":["String.String"]}}}}})}});}(this));

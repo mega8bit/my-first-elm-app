@@ -7,6 +7,7 @@ type Route =
     Preview
     | NotFound
     | Gif
+    | Tree
 
 route: Url.Parser (Route -> a) a
 route =
@@ -15,6 +16,7 @@ route =
         , Url.map Preview (Url.s "preview")
         , Url.map NotFound (Url.s "404")
         , Url.map Gif (Url.s "gif")
+        , Url.map Tree (Url.s "tree")
         ]
 
 getRoute: Maybe Route -> Route

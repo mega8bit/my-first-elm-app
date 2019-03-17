@@ -6,6 +6,7 @@ import Html exposing (Html, div, p, text)
 import Pages.Gif
 import Pages.NotFound
 import Pages.Preview
+import Pages.Tree
 import Router
 import Url exposing (Url)
 import Url.Parser
@@ -27,6 +28,7 @@ type alias Model =
     , notFoundModel: Pages.NotFound.Model
     , previewModel: Pages.Preview.Model
     , gifModel: Pages.Gif.Model
+    , treeModel: Pages.Tree.Model
     }
 
 init: () -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
@@ -40,6 +42,7 @@ init flags url key =
              , notFoundModel = False
              , previewModel = Pages.Preview.Noop
              , gifModel = Pages.Gif.Noop
+             , treeModel = []
             }
     in
         initialModels initModel route
@@ -60,12 +63,18 @@ initialModels model route =
                 (newModel, cmd) = Pages.Gif.init
             in
             ({model | gifModel = newModel, currentRoute = route}, Cmd.map GifMsg cmd)
+        Router.Tree ->
+            let
+                (newModel, cmd) = Pages.Tree.init
+            in
+            ({model | treeModel = newModel, currentRoute = route}, Cmd.map TreeMsg cmd)
 type Msg =
     UrlChange Url.Url
     | LinkClicked Browser.UrlRequest
     | NotFoundMsg Pages.NotFound.Msg
     | PreviewMsg Pages.Preview.Msg
     | GifMsg Pages.Gif.Msg
+    | TreeMsg Pages.Tree.Msg
 
 update: Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -96,6 +105,11 @@ update msg model =
                 (updateModel, updateMsg) = Pages.Gif.update subMsg
             in
                 ({model | gifModel = updateModel}, Cmd.map GifMsg updateMsg)
+        TreeMsg subMsg ->
+            let
+                (updateModel, updateMsg) = Pages.Tree.update subMsg
+            in
+                ({model | treeModel = updateModel}, Cmd.map TreeMsg updateMsg)
 
 view: Model -> Browser.Document Msg
 view model =
@@ -125,4 +139,9 @@ render model =
             div []
             [
                 Html.map GifMsg (Pages.Gif.view model.gifModel)
+            ]
+        Router.Tree ->
+            div []
+            [
+                Html.map TreeMsg (Pages.Tree.view model.treeModel)
             ]

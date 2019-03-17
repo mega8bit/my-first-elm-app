@@ -16,7 +16,7 @@ init =
     Loading
     , Http.get
         {
-          url = "https://ident.me"
+          url = "http://localhost:8080/i.php"
         , expect = Http.expectString GotText
         }
     )
