@@ -6474,10 +6474,11 @@ var author$project$Pages$Tree$GotTree = function (a) {
 var author$project$Pages$Tree$Childrens = function (a) {
 	return {$: 'Childrens', a: a};
 };
-var author$project$Pages$Tree$Tree = F5(
-	function (id, name, parentId, text, children) {
-		return {children: children, id: id, name: name, parentId: parentId, text: text};
+var author$project$Pages$Tree$Tree = F6(
+	function (id, name, parentId, text, children, isActive) {
+		return {children: children, id: id, isActive: isActive, name: name, parentId: parentId, text: text};
 	});
+var elm$json$Json$Decode$bool = _Json_decodeBool;
 var elm$json$Json$Decode$int = _Json_decodeInt;
 var elm$json$Json$Decode$andThen = _Json_andThen;
 var elm$json$Json$Decode$succeed = _Json_succeed;
@@ -6489,11 +6490,11 @@ var elm$json$Json$Decode$lazy = function (thunk) {
 };
 var elm$json$Json$Decode$list = _Json_decodeList;
 var elm$json$Json$Decode$map = _Json_map1;
-var elm$json$Json$Decode$map5 = _Json_map5;
+var elm$json$Json$Decode$map6 = _Json_map6;
 function author$project$Pages$Tree$cyclic$treeDataDecoder() {
 	return elm$json$Json$Decode$list(
-		A6(
-			elm$json$Json$Decode$map5,
+		A7(
+			elm$json$Json$Decode$map6,
 			author$project$Pages$Tree$Tree,
 			A2(elm$json$Json$Decode$field, 'id', elm$json$Json$Decode$int),
 			A2(elm$json$Json$Decode$field, 'name', elm$json$Json$Decode$string),
@@ -6508,7 +6509,8 @@ function author$project$Pages$Tree$cyclic$treeDataDecoder() {
 					elm$json$Json$Decode$lazy(
 						function (_n0) {
 							return author$project$Pages$Tree$cyclic$treeDataDecoder();
-						})))));
+						}))),
+			A2(elm$json$Json$Decode$field, 'isActive', elm$json$Json$Decode$bool)));
 }
 try {
 	var author$project$Pages$Tree$treeDataDecoder = author$project$Pages$Tree$cyclic$treeDataDecoder();
@@ -6518,7 +6520,7 @@ try {
 } catch ($) {
 throw 'Some top-level definitions from `Pages.Tree` are causing infinite recursion:\n\n  ┌─────┐\n  │    treeDataDecoder\n  └─────┘\n\nThese errors are very tricky, so read https://elm-lang.org/0.19.0/halting-problem to learn how to fix it!';}
 var author$project$Pages$Tree$init = _Utils_Tuple2(
-	_List_Nil,
+	{tree: _List_Nil},
 	elm$http$Http$get(
 		{
 			expect: A2(elm$http$Http$expectJson, author$project$Pages$Tree$GotTree, author$project$Pages$Tree$treeDataDecoder),
@@ -6831,7 +6833,14 @@ var author$project$Main$init = F3(
 	function (flags, url, key) {
 		var route = author$project$Router$getRoute(
 			A2(elm$url$Url$Parser$parse, author$project$Router$route, url));
-		var initModel = {currentRoute: route, gifModel: author$project$Pages$Gif$Noop, notFoundModel: false, previewModel: author$project$Pages$Preview$Noop, treeModel: _List_Nil, urlKey: key};
+		var initModel = {
+			currentRoute: route,
+			gifModel: author$project$Pages$Gif$Noop,
+			notFoundModel: false,
+			previewModel: author$project$Pages$Preview$Noop,
+			treeModel: {tree: _List_Nil},
+			urlKey: key
+		};
 		return A2(author$project$Main$initialModels, initModel, route);
 	});
 var author$project$Pages$Gif$Failed = {$: 'Failed'};
@@ -6874,21 +6883,61 @@ var author$project$Pages$Preview$update = function (msg) {
 		return author$project$Pages$Preview$Fail;
 	}
 };
+var author$project$Pages$Tree$getTreeChildren = function (child) {
+	var a = child.a;
+	return a;
+};
+var author$project$Pages$Tree$changeNode = F2(
+	function (currentTree, modelTree) {
+		var newChild = A2(
+			elm$core$List$map,
+			author$project$Pages$Tree$changeNode(currentTree),
+			author$project$Pages$Tree$getTreeChildren(modelTree.children));
+		return _Utils_eq(modelTree.id, currentTree.id) ? _Utils_update(
+			modelTree,
+			{isActive: true}) : _Utils_update(
+			modelTree,
+			{
+				children: author$project$Pages$Tree$Childrens(newChild),
+				isActive: false
+			});
+	});
 var elm$core$Debug$log = _Debug_log;
 var elm$core$Debug$toString = _Debug_toString;
-var author$project$Pages$Tree$update = function (msg) {
-	var result = msg.a;
-	if (result.$ === 'Ok') {
-		var text = result.a;
-		return _Utils_Tuple2(text, elm$core$Platform$Cmd$none);
-	} else {
-		var text = result.a;
-		return A2(
-			elm$core$Debug$log,
-			elm$core$Debug$toString(text),
-			_Utils_Tuple2(_List_Nil, elm$core$Platform$Cmd$none));
-	}
-};
+var author$project$Pages$Tree$update = F2(
+	function (msg, model) {
+		if (msg.$ === 'GotTree') {
+			var result = msg.a;
+			if (result.$ === 'Ok') {
+				var text = result.a;
+				return _Utils_Tuple2(
+					{tree: text},
+					elm$core$Platform$Cmd$none);
+			} else {
+				var text = result.a;
+				return A2(
+					elm$core$Debug$log,
+					elm$core$Debug$toString(text),
+					_Utils_Tuple2(
+						{tree: _List_Nil},
+						elm$core$Platform$Cmd$none));
+			}
+		} else {
+			var treeNode = msg.a;
+			var newTree = A2(
+				elm$core$List$map,
+				author$project$Pages$Tree$changeNode(treeNode),
+				model.tree);
+			return A2(
+				elm$core$Debug$log,
+				elm$core$Debug$toString(treeNode.name),
+				_Utils_Tuple2(
+					_Utils_update(
+						model,
+						{tree: newTree}),
+					elm$core$Platform$Cmd$none));
+		}
+	});
 var elm$browser$Browser$External = function (a) {
 	return {$: 'External', a: a};
 };
@@ -10613,7 +10662,7 @@ var author$project$Main$update = F2(
 					A2(elm$core$Platform$Cmd$map, author$project$Main$GifMsg, updateMsg));
 			default:
 				var subMsg = msg.a;
-				var _n3 = author$project$Pages$Tree$update(subMsg);
+				var _n3 = A2(author$project$Pages$Tree$update, subMsg, model.treeModel);
 				var updateModel = _n3.a;
 				var updateMsg = _n3.b;
 				return _Utils_Tuple2(
@@ -10829,40 +10878,51 @@ var author$project$Pages$Preview$view = function (model) {
 			}()
 			]));
 };
-var author$project$Pages$Tree$getTreeChildren = function (child) {
-	var a = child.a;
-	return a;
+var author$project$Pages$Tree$ClickNode = function (a) {
+	return {$: 'ClickNode', a: a};
 };
-var author$project$Pages$Tree$viewTreeChildrens = function (children) {
-	return A2(
-		elm$html$Html$ul,
-		_List_Nil,
-		_List_fromArray(
-			[
-				author$project$Pages$Tree$viewTreeElement(children)
-			]));
-};
+var elm$html$Html$strong = _VirtualDom_node('strong');
 var author$project$Pages$Tree$viewTreeElement = function (tree) {
 	return A2(
 		elm$html$Html$li,
 		_List_Nil,
 		_List_fromArray(
 			[
-				elm$html$Html$text(tree.name),
+				tree.isActive ? A2(
+				elm$html$Html$strong,
+				_List_fromArray(
+					[
+						elm$html$Html$Events$onClick(
+						author$project$Pages$Tree$ClickNode(tree))
+					]),
+				_List_fromArray(
+					[
+						elm$html$Html$text(tree.name)
+					])) : A2(
+				elm$html$Html$p,
+				_List_fromArray(
+					[
+						elm$html$Html$Events$onClick(
+						author$project$Pages$Tree$ClickNode(tree))
+					]),
+				_List_fromArray(
+					[
+						elm$html$Html$text(tree.name)
+					])),
 				A2(
 				elm$html$Html$ul,
 				_List_Nil,
 				A2(
 					elm$core$List$map,
-					author$project$Pages$Tree$viewTreeChildrens,
+					author$project$Pages$Tree$viewTreeElement,
 					author$project$Pages$Tree$getTreeChildren(tree.children)))
 			]));
 };
-var author$project$Pages$Tree$view = function (tree) {
+var author$project$Pages$Tree$view = function (model) {
 	return A2(
 		elm$html$Html$ul,
 		_List_Nil,
-		A2(elm$core$List$map, author$project$Pages$Tree$viewTreeElement, tree));
+		A2(elm$core$List$map, author$project$Pages$Tree$viewTreeElement, model.tree));
 };
 var author$project$Main$render = function (model) {
 	var _n0 = model.currentRoute;
@@ -10943,4 +11003,4 @@ var author$project$Main$main = elm$browser$Browser$application(
 		view: author$project$Main$view
 	});
 _Platform_export({'Main':{'init':author$project$Main$main(
-	elm$json$Json$Decode$succeed(_Utils_Tuple0))({"versions":{"elm":"0.19.0"},"types":{"message":"Main.Msg","aliases":{"Url.Url":{"args":[],"type":"{ protocol : Url.Protocol, host : String.String, port_ : Maybe.Maybe Basics.Int, path : String.String, query : Maybe.Maybe String.String, fragment : Maybe.Maybe String.String }"},"Pages.Tree.Tree":{"args":[],"type":"{ id : Basics.Int, name : String.String, parentId : Basics.Int, text : String.String, children : Pages.Tree.Childrens }"}},"unions":{"Main.Msg":{"args":[],"tags":{"UrlChange":["Url.Url"],"LinkClicked":["Browser.UrlRequest"],"NotFoundMsg":["Pages.NotFound.Msg"],"PreviewMsg":["Pages.Preview.Msg"],"GifMsg":["Pages.Gif.Msg"],"TreeMsg":["Pages.Tree.Msg"]}},"Pages.Gif.Msg":{"args":[],"tags":{"GotGif":["Result.Result Http.Error String.String"],"More":[]}},"Pages.NotFound.Msg":{"args":[],"tags":{"Show":[],"Hide":[]}},"Pages.Preview.Msg":{"args":[],"tags":{"GotText":["Result.Result Http.Error String.String"]}},"Pages.Tree.Msg":{"args":[],"tags":{"GotTree":["Result.Result Http.Error (List.List Pages.Tree.Tree)"]}},"Browser.UrlRequest":{"args":[],"tags":{"Internal":["Url.Url"],"External":["String.String"]}},"Basics.Int":{"args":[],"tags":{"Int":[]}},"Maybe.Maybe":{"args":["a"],"tags":{"Just":["a"],"Nothing":[]}},"String.String":{"args":[],"tags":{"String":[]}},"Url.Protocol":{"args":[],"tags":{"Http":[],"Https":[]}},"Pages.Tree.Childrens":{"args":[],"tags":{"Childrens":["List.List Pages.Tree.Tree"]}},"List.List":{"args":["a"],"tags":{}},"Result.Result":{"args":["error","value"],"tags":{"Ok":["value"],"Err":["error"]}},"Http.Error":{"args":[],"tags":{"BadUrl":["String.String"],"Timeout":[],"NetworkError":[],"BadStatus":["Basics.Int"],"BadBody":["String.String"]}}}}})}});}(this));
+	elm$json$Json$Decode$succeed(_Utils_Tuple0))({"versions":{"elm":"0.19.0"},"types":{"message":"Main.Msg","aliases":{"Url.Url":{"args":[],"type":"{ protocol : Url.Protocol, host : String.String, port_ : Maybe.Maybe Basics.Int, path : String.String, query : Maybe.Maybe String.String, fragment : Maybe.Maybe String.String }"},"Pages.Tree.Tree":{"args":[],"type":"{ id : Basics.Int, name : String.String, parentId : Basics.Int, text : String.String, children : Pages.Tree.Childrens, isActive : Basics.Bool }"}},"unions":{"Main.Msg":{"args":[],"tags":{"UrlChange":["Url.Url"],"LinkClicked":["Browser.UrlRequest"],"NotFoundMsg":["Pages.NotFound.Msg"],"PreviewMsg":["Pages.Preview.Msg"],"GifMsg":["Pages.Gif.Msg"],"TreeMsg":["Pages.Tree.Msg"]}},"Pages.Gif.Msg":{"args":[],"tags":{"GotGif":["Result.Result Http.Error String.String"],"More":[]}},"Pages.NotFound.Msg":{"args":[],"tags":{"Show":[],"Hide":[]}},"Pages.Preview.Msg":{"args":[],"tags":{"GotText":["Result.Result Http.Error String.String"]}},"Pages.Tree.Msg":{"args":[],"tags":{"GotTree":["Result.Result Http.Error (List.List Pages.Tree.Tree)"],"ClickNode":["Pages.Tree.Tree"]}},"Browser.UrlRequest":{"args":[],"tags":{"Internal":["Url.Url"],"External":["String.String"]}},"Basics.Int":{"args":[],"tags":{"Int":[]}},"Maybe.Maybe":{"args":["a"],"tags":{"Just":["a"],"Nothing":[]}},"String.String":{"args":[],"tags":{"String":[]}},"Url.Protocol":{"args":[],"tags":{"Http":[],"Https":[]}},"Pages.Tree.Childrens":{"args":[],"tags":{"Childrens":["List.List Pages.Tree.Tree"]}},"Basics.Bool":{"args":[],"tags":{"True":[],"False":[]}},"List.List":{"args":["a"],"tags":{}},"Result.Result":{"args":["error","value"],"tags":{"Ok":["value"],"Err":["error"]}},"Http.Error":{"args":[],"tags":{"BadUrl":["String.String"],"Timeout":[],"NetworkError":[],"BadStatus":["Basics.Int"],"BadBody":["String.String"]}}}}})}});}(this));

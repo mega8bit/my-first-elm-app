@@ -42,7 +42,7 @@ init flags url key =
              , notFoundModel = False
              , previewModel = Pages.Preview.Noop
              , gifModel = Pages.Gif.Noop
-             , treeModel = []
+             , treeModel = {tree = []}
             }
     in
         initialModels initModel route
@@ -107,7 +107,7 @@ update msg model =
                 ({model | gifModel = updateModel}, Cmd.map GifMsg updateMsg)
         TreeMsg subMsg ->
             let
-                (updateModel, updateMsg) = Pages.Tree.update subMsg
+                (updateModel, updateMsg) = Pages.Tree.update subMsg model.treeModel
             in
                 ({model | treeModel = updateModel}, Cmd.map TreeMsg updateMsg)
 
